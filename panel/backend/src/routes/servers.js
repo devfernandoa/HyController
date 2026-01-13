@@ -196,13 +196,23 @@ router.post('/', upload.single('bundle'), async (req, res) => {
     }
 
     // Check if runner image exists
+    // Support both local and GHCR images
+    const runnerImage = process.env.RUNNER_IMAGE || 'hycontroller-runner:latest';
     const images = await docker.listImages();
     const runnerImageExists = images.some(img =>
-      img.RepoTags && img.RepoTags.some(tag => tag.includes('hycontroller-runner'))
+      img.RepoTags && img.RepoTags.some(tag => 
+        tag.includes('hycontroller-runner') || tag === runnerImage
+      )
     );
 
     if (!runnerImageExists) {
-      throw new Error('Runner image not found. Please build the runner image first.');
+      console.log(`Runner image '${runnerImage}' not found locally. Attempting to pull...`);
+      try {
+        await docker.pull(runnerImage);
+        console.log(`Successfully pulled ${runnerImage}`);
+      } catch (pullError) {
+        throw new Error(`Runner image not found and pull failed: ${pullError.message}. Please ensure the runner image is available.`);
+      }
     }
 
     // Build Java command
@@ -226,8 +236,9 @@ router.post('/', upload.single('bundle'), async (req, res) => {
     }
 
     // Create container
+    const runnerImage = process.env.RUNNER_IMAGE || 'hycontroller-runner:latest';
     const container = await docker.createContainer({
-      Image: 'hycontroller-runner:latest',
+      Image: runnerImage,
       name: `hytale-${name}`,
       Labels: {
         'hycontroller.managed': 'true',

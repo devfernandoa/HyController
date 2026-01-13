@@ -18,6 +18,7 @@ services:
     environment:
       - PORT=3001
       - NODE_ENV=production
+      - RUNNER_IMAGE=ghcr.io/${GITHUB_USERNAME:-OWNER}/hycontroller-runner:latest
     restart: unless-stopped
     networks:
       - hycontroller
