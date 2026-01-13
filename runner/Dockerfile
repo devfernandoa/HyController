@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     unzip \
+    expect \
     && rm -rf /var/lib/apt/lists/*
 
 # Create data directory

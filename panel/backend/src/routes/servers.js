@@ -412,6 +412,10 @@ router.put('/:id/settings', async (req, res) => {
       volumeName = `hytale-${containerName}`;
     }
 
+    // Convert booleans
+    const disableSentryBool = disableSentry === 'true' || disableSentry === true;
+    const enableAOTBool = enableAOT === 'true' || enableAOT === true;
+
     // Create settings object
     const settings = {
       name: name || info.Name.replace(/^\//, '').replace(/^hytale-/, ''),
@@ -419,8 +423,8 @@ router.put('/:id/settings', async (req, res) => {
       memoryMax: memoryMax || '4G',
       port: port || 5520,
       authMode: authMode || 'authenticated',
-      disableSentry: disableSentry || false,
-      enableAOT: enableAOT || false,
+      disableSentry: disableSentryBool,
+      enableAOT: enableAOTBool,
       jvmArgs: jvmArgs,
       updatedAt: new Date().toISOString()
     };
@@ -431,17 +435,73 @@ router.put('/:id/settings', async (req, res) => {
 
     await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2));
 
-    // If container is running, need to restart for changes to take effect
-    if (info.State.Running) {
-      await container.restart();
+    // Recreate container with new settings
+    const wasRunning = info.State.Running;
+    
+    // Stop and remove old container
+    if (wasRunning) {
+      await container.stop();
+    }
+    await container.remove();
+
+    // Build new Java args
+    const javaArgs = [
+      `-Xms${settings.memoryMin}`,
+      `-Xmx${settings.memoryMax}`
+    ];
+
+    if (enableAOTBool) {
+      javaArgs.push('-XX:AOTCache=/data/HytaleServer.aot');
+    }
+
+    // Build server args
+    const serverArgs = [
+      '--assets', '/data/Assets.zip',
+      '--bind', `0.0.0.0:${settings.port}`,
+      '--auth-mode', settings.authMode
+    ];
+
+    if (disableSentryBool) {
+      serverArgs.push('--disable-sentry');
+    }
+
+    // Create new container with updated settings
+    const runnerImage = process.env.RUNNER_IMAGE || 'hycontroller-runner:latest';
+    const newContainer = await docker.createContainer({
+      Image: runnerImage,
+      name: info.Name.replace(/^\//, ''),
+      Labels: info.Config.Labels,
+      Env: [
+        `JAVA_OPTS=${javaArgs.join(' ')}`,
+        `SERVER_ARGS=${serverArgs.join(' ')}`
+      ],
+      HostConfig: {
+        Binds: [`${volumeName}:/data`],
+        PortBindings: {
+          [`${settings.port}/udp`]: [{ HostPort: `${settings.port}` }]
+        },
+        RestartPolicy: {
+          Name: 'unless-stopped'
+        }
+      },
+      ExposedPorts: {
+        [`${settings.port}/udp`]: {}
+      }
+    });
+
+    // Start if was running before
+    if (wasRunning) {
+      await newContainer.start();
     }
 
     res.json({
-      message: 'Settings updated successfully',
+      message: 'Settings updated successfully. Container recreated with new configuration.',
       settings,
-      requiresRestart: !info.State.Running
+      id: newContainer.id,
+      restarted: wasRunning
     });
   } catch (error) {
+    console.error('Error updating settings:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -16,15 +16,33 @@ router.post('/:serverId/exec', async (req, res) => {
     
     const container = docker.getContainer(serverId);
     
-    // Execute command by writing to container's stdin
+    // Check if container is running
+    const info = await container.inspect();
+    if (!info.State.Running) {
+      return res.status(400).json({ error: 'Container is not running' });
+    }
+    
+    // Write command to the console pipe (named pipe created in entrypoint.sh)
     const exec = await container.exec({
-      Cmd: ['sh', '-c', `echo "${command}" > /proc/1/fd/0`],
-      AttachStdin: true,
+      Cmd: ['sh', '-c', `echo "${command.replace(/"/g, '\\"')}" > /tmp/console.pipe`],
       AttachStdout: true,
-      AttachStderr: true
+      AttachStderr: true,
+      Tty: false
     });
     
-    const stream = await exec.start({ stdin: true });
+    const stream = await exec.start({ hijack: false, stdin: false });
+    
+    let output = '';
+    stream.on('data', (chunk) => {
+      output += chunk.toString();
+    });
+
+    await new Promise((resolve) => {
+      stream.on('end', resolve);
+    });
+    
+    // Wait a bit for the command to be processed
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Broadcast command to WebSocket clients
     wss.clients.forEach(client => {
@@ -32,13 +50,19 @@ router.post('/:serverId/exec', async (req, res) => {
         client.send(JSON.stringify({
           type: 'command',
           serverId,
-          command
+          command,
+          status: 'sent'
         }));
       }
     });
     
-    res.json({ message: 'Command executed', command });
+    res.json({ 
+      message: 'Command sent to console', 
+      command,
+      status: 'sent to pipe'
+    });
   } catch (error) {
+    console.error('Error executing console command:', error);
     res.status(500).json({ error: error.message });
   }
 });
