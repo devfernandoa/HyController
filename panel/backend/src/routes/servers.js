@@ -236,7 +236,6 @@ router.post('/', upload.single('bundle'), async (req, res) => {
     }
 
     // Create container
-    const runnerImage = process.env.RUNNER_IMAGE || 'hycontroller-runner:latest';
     const container = await docker.createContainer({
       Image: runnerImage,
       name: `hytale-${name}`,
