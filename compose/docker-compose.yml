@@ -1,0 +1,39 @@
+services:
+  # Panel Backend API
+  panel-backend:
+    build:
+      context: ../panel/backend
+      dockerfile: Dockerfile
+    container_name: hycontroller-backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes:rw
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - hycontroller
+
+  # Panel Frontend UI
+  panel-frontend:
+    build:
+      context: ../panel/frontend
+      dockerfile: Dockerfile
+    container_name: hycontroller-frontend
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:3001/api
+      - REACT_APP_WS_URL=ws://localhost:3001
+    depends_on:
+      - panel-backend
+    restart: unless-stopped
+    networks:
+      - hycontroller
+
+networks:
+  hycontroller:
+    driver: bridge

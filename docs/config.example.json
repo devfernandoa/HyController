@@ -1,0 +1,27 @@
+# Exemplo de configuração de servidor Hytale
+# Copie este arquivo para /data/config.json no volume do servidor
+
+{
+  "Version": 1,
+  "ServerName": "Meu Servidor Hytale",
+  "ServerDescription": "Um servidor incrível de Hytale",
+  "MaxPlayers": 20,
+  "ViewDistance": 12,
+  "SimulationDistance": 10,
+  "Port": 5520,
+  "BindAddress": "0.0.0.0",
+  "Whitelist": false,
+  "EnablePvP": false,
+  "EnableFallDamage": true,
+  "Difficulty": "Normal",
+  "GameMode": "Adventure",
+  "AllowCheats": false,
+  "EnableCommandBlocks": false,
+  "MOTD": "Bem-vindo ao meu servidor!",
+  "LogLevel": "INFO",
+  "AutoSave": true,
+  "AutoSaveInterval": 300,
+  "BackupEnabled": false,
+  "BackupInterval": 1800,
+  "BackupRetention": 7
+}

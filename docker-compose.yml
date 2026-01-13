@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # Panel Backend API
+  backend:
+    build:
+      context: ./panel/backend
+      dockerfile: Dockerfile
+    container_name: hycontroller-backend
+    ports:
+      - "3001:3001"
+    volumes:
+      # Docker socket to manage containers
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Access to Docker volumes for file management
+      - /var/lib/docker/volumes:/var/lib/docker/volumes:rw
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - hycontroller
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Panel Frontend UI
+  frontend:
+    build:
+      context: ./panel/frontend
+      dockerfile: Dockerfile
+    container_name: hycontroller-frontend
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:3001/api
+      - REACT_APP_WS_URL=ws://localhost:3001
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - hycontroller
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Pre-build the runner image (used by created servers)
+  runner-builder:
+    build:
+      context: ./runner
+      dockerfile: Dockerfile
+    image: hycontroller-runner:latest
+    container_name: hycontroller-runner-builder
+    command: echo "Runner image built successfully"
+    restart: "no"
+
+networks:
+  hycontroller:
+    name: hycontroller
+    driver: bridge
+
+# Note: Server volumes are created dynamically by the backend
+# Each Hytale server will have its own named volume (hytale-{servername})
