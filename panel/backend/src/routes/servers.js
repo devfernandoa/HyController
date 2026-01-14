@@ -239,6 +239,12 @@ router.post('/', upload.single('bundle'), async (req, res) => {
     const container = await docker.createContainer({
       Image: runnerImage,
       name: `hytale-${name}`,
+      Tty: true,  // Enable TTY for interactive console
+      OpenStdin: true,  // Keep stdin open for commands
+      StdinOnce: false,  // Don't close stdin after first attach
+      AttachStdin: true,
+      AttachStdout: true,
+      AttachStderr: true,
       Labels: {
         'hycontroller.managed': 'true',
         'hycontroller.server': name
@@ -470,6 +476,12 @@ router.put('/:id/settings', async (req, res) => {
     const newContainer = await docker.createContainer({
       Image: runnerImage,
       name: info.Name.replace(/^\//, ''),
+      Tty: true,  // Enable TTY for interactive console
+      OpenStdin: true,  // Keep stdin open for commands
+      StdinOnce: false,  // Don't close stdin after first attach
+      AttachStdin: true,
+      AttachStdout: true,
+      AttachStderr: true,
       Labels: info.Config.Labels,
       Env: [
         `JAVA_OPTS=${javaArgs.join(' ')}`,

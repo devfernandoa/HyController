@@ -22,27 +22,22 @@ router.post('/:serverId/exec', async (req, res) => {
       return res.status(400).json({ error: 'Container is not running' });
     }
     
-    // Write command to the console pipe (named pipe created in entrypoint.sh)
-    const exec = await container.exec({
-      Cmd: ['sh', '-c', `echo "${command.replace(/"/g, '\\"')}" > /tmp/console.pipe`],
-      AttachStdout: true,
-      AttachStderr: true,
-      Tty: false
-    });
+    // Use docker attach to send command directly to stdin
+    // This works because we create containers with OpenStdin: true and Tty: true
+    const attachOptions = {
+      stream: true,
+      stdin: true,
+      stdout: false,
+      stderr: false
+    };
     
-    const stream = await exec.start({ hijack: false, stdin: false });
+    const stream = await container.attach(attachOptions);
     
-    let output = '';
-    stream.on('data', (chunk) => {
-      output += chunk.toString();
-    });
-
-    await new Promise((resolve) => {
-      stream.on('end', resolve);
-    });
+    // Send command followed by newline
+    stream.write(`${command}\n`);
     
-    // Wait a bit for the command to be processed
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // End the stream
+    stream.end();
     
     // Broadcast command to WebSocket clients
     wss.clients.forEach(client => {
@@ -57,9 +52,8 @@ router.post('/:serverId/exec', async (req, res) => {
     });
     
     res.json({ 
-      message: 'Command sent to console', 
-      command,
-      status: 'sent to pipe'
+      message: 'Command sent to server console', 
+      command
     });
   } catch (error) {
     console.error('Error executing console command:', error);

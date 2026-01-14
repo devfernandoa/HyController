@@ -253,6 +253,35 @@ sudo netstat -tulpn | grep :5520
 - [Como Importar Arquivos do Servidor](docs/import-server.md)
 - [Autenticação de Servidor](docs/authentication.md)
 
+## ⚠️ Limitações Conhecidas
+
+### Console do Servidor
+
+O **console** exibido no painel é apenas para **visualização de logs** em tempo real. O Hytale Server em modo servidor não aceita comandos via stdin.
+
+**Para administração do servidor, use:**
+- Comandos in-game (se estiver jogando como admin)
+- Arquivo de configuração (editar settings via UI)
+- Futuro suporte a RCON (em desenvolvimento)
+
+**Nota:** Comandos como `/auth login device` devem ser executados durante o primeiro boot acessando os logs do container diretamente:
+```bash
+docker logs -f hytale-<nome-do-servidor>
+```
+
+### Modo de Autenticação
+
+- **Offline**: Funciona apenas em singleplayer. Em multiplayer, jogadores não conseguem conectar.
+- **Authenticated**: Requerido para multiplayer. Você deve autenticar o servidor após primeira inicialização.
+
+### Arquivos Necessários
+
+O servidor **não inicia** sem:
+- `HytaleServer.jar` (executável do servidor)
+- `Assets.zip` (assets do jogo)
+
+Certifique-se de fazer upload desses arquivos antes de iniciar o servidor.
+
 ## 🔄 Atualizações
 
 ### Atualizando o painel
