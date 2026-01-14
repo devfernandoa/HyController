@@ -34,6 +34,11 @@ echo "Server Args: $SERVER_ARGS"
 echo "=============================================="
 echo ""
 
+# Print server version if jar contains manifest
+echo "Checking server version..."
+unzip -p /data/HytaleServer.jar META-INF/MANIFEST.MF 2>/dev/null | grep -i "version\|build" || echo "No version info in manifest"
+echo ""
+
 # Start the Hytale server directly (console is read-only for logs)
 # Note: Hytale Server console may not support stdin commands in server mode
 # Commands might need to be sent via RCON or other protocols

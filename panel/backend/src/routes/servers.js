@@ -192,7 +192,10 @@ router.post('/', upload.single('bundle'), async (req, res) => {
       await fs.access(`${volumePath}/Assets.zip`);
       await fs.access(`${volumePath}/HytaleServer.jar`);
     } catch (accessError) {
-      throw new Error('Bundle is missing required files (Assets.zip or HytaleServer.jar)');
+      // List what was actually extracted for debugging
+      const files = await fs.readdir(volumePath);
+      console.error('Files in volume:', files);
+      throw new Error(`Bundle is missing required files (Assets.zip or HytaleServer.jar). Found: ${files.join(', ')}`);
     }
 
     // Check if runner image exists
@@ -256,11 +259,12 @@ router.post('/', upload.single('bundle'), async (req, res) => {
       HostConfig: {
         Binds: [`${volume.Name}:/data`],
         PortBindings: {
-          [`${port}/udp`]: [{ HostPort: `${port}` }]
+          [`${port}/udp`]: [{ HostPort: `${port}`, HostIp: '0.0.0.0' }]
         },
         RestartPolicy: {
           Name: 'unless-stopped'
-        }
+        },
+        NetworkMode: 'bridge'
       },
       ExposedPorts: {
         [`${port}/udp`]: {}
@@ -490,11 +494,12 @@ router.put('/:id/settings', async (req, res) => {
       HostConfig: {
         Binds: [`${volumeName}:/data`],
         PortBindings: {
-          [`${settings.port}/udp`]: [{ HostPort: `${settings.port}` }]
+          [`${settings.port}/udp`]: [{ HostPort: `${settings.port}`, HostIp: '0.0.0.0' }]
         },
         RestartPolicy: {
           Name: 'unless-stopped'
-        }
+        },
+        NetworkMode: 'bridge'
       },
       ExposedPorts: {
         [`${settings.port}/udp`]: {}
