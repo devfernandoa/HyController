@@ -1,4 +1,4 @@
-# HyController
+# HyController ⚠️⚠️ WIP (DOESN'T WORK YET) ⚠️⚠️
 
 Um painel de controle completo para gerenciar servidores Hytale via Docker.
 
