@@ -51,13 +51,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # Pull the runner image (used by created servers)
-  runner:
-    image: ghcr.io/devfernandoa/hycontroller-runner:latest
-    container_name: hycontroller-runner-image
-    command: echo "Runner image pulled successfully"
-    restart: "no"
-
 networks:
   hycontroller:
     name: hycontroller
