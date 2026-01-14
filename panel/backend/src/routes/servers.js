@@ -174,9 +174,12 @@ router.post('/', upload.single('bundle'), async (req, res) => {
     // Extract bundle to volume
     const volumePath = `/var/lib/docker/volumes/${volume.Name}/_data`;
 
+    console.log(`Extracting ${req.file.path} to ${volumePath}...`);
     try {
       await extract(req.file.path, { dir: volumePath });
+      console.log('Extraction completed successfully');
     } catch (extractError) {
+      console.error('Extraction failed:', extractError);
       throw new Error(`Failed to extract bundle: ${extractError.message}`);
     } finally {
       // Clean up uploaded file
